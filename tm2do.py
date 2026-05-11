@@ -950,9 +950,10 @@ def _active_milestones_for_dashboard(conn: sqlite3.Connection, user: dict[str, A
         FROM milestones m
         INNER JOIN projects p ON p.id = m.project_id
     """
+    # 按真实日历先后排序：due_date 存 TEXT，纯字符串 ASC 会在「2026-6-6」类未补零时排在「2026-06-29」之后（字典序 6 > 0）。
     ord_by = """
         ORDER BY (m.due_date IS NULL OR trim(m.due_date) = ''),
-                 m.due_date ASC,
+                 COALESCE(julianday(date(trim(replace(m.due_date, '/', '-')))), 999999999),
                  p.id ASC,
                  m.sort_order ASC,
                  m.id ASC
